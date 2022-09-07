@@ -42,7 +42,7 @@ const bool motors = true;
 const bool servo = false;
 const bool rfid = false;
 const bool oled = false;
-const bool matrixLED = false;
+const bool matrixLED = true;
 const bool wifi = true;
 // Replace with your network credentials
 //const char* ssid = "lapin";
@@ -86,206 +86,7 @@ static const uint8_t PROGMEM eyes_bmp[4][8] = {
   {B00000000,B11100111,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000}   //losed eyes
 };
 
-//webpages
-const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE html>
-<meta name="viewport" content="width=device-width, initial-scale=0.25">
-<html>
-  <meta name="viewport" content="width=device-width, initial-scale=0.25">
-  <head>
-    <title>Joystick Controls</title>
-    <style>
-    body
-    {
-      font-family: Courier, monospaced;
-      font-size: 20px;
-      font-weight: bold;
-    }
-    </style>
-  </head>
-
-  <body>
-
-    Joystick Controls.
-    <hr>
-      <div id="status1" style="color: red;">Joystick 1</div>
-    <hr>
-    <div style = "align-items: center ;position: absolute; left: 166px; top:150px; ">
-      <button onclick="apertou()" type="button"> <img src="/laser_red" height ="64" width="64" /></button>
-    </div>
-    <div style="border: 1px solid red; width: 128px; position: absolute; left:150px; top:300px;">
-
-      <div style="transform: scale(1,1);">
-        <!-- <img src="images/joy_base.png"/> -->
-        <img src="/joy_base"/>
-      </div>
-
-      <div id="stick1" style="transform: scale(1,1);position: absolute; left:32px; top:32px;">
-        <div style="cursor: grab; ">
-          <!-- <img src="images/joy_red.png"/> -->
-          <img src="/joy_red"/>
-        </div>
-      </div>
-    </div>
-
-    <script>
-      var xhr = new XMLHttpRequest();
-
-      class JoystickController
-      {
-        // stickID: ID of HTML element (representing joystick) that will be dragged
-        // maxDistance: maximum amount joystick can move in any direction
-        // deadzone: joystick must move at least this amount from origin to register value change
-        constructor( stickID, maxDistance, deadzone )
-        {
-          this.id = stickID;
-          let stick = document.getElementById(stickID);
-
-          // location from which drag begins, used to calculate offsets
-          this.dragStart = null;
-
-          // track touch identifier in case multiple joysticks present
-          this.touchId = null;
-          
-          this.active = false;
-          this.value = { x: 0, y: 0 }; 
-
-          let self = this;
-
-          function handleDown(event)
-          {
-            self.active = true;
-
-            // all drag movements are instantaneous
-            stick.style.transition = '0s';
-
-            // touch event fired before mouse event; prevent redundant mouse event from firing
-            event.preventDefault();
-
-            if (event.changedTouches)
-              self.dragStart = { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY };
-            else
-              self.dragStart = { x: event.clientX, y: event.clientY };
-
-            // if this is a touch event, keep track of which one
-            if (event.changedTouches)
-              self.touchId = event.changedTouches[0].identifier;
-          }
-          
-          function handleMove(event) 
-          {
-            if ( !self.active ) return;
-
-            // if this is a touch event, make sure it is the right one
-            // also handle multiple simultaneous touchmove events
-            let touchmoveId = null;
-            if (event.changedTouches)
-            {
-              for (let i = 0; i < event.changedTouches.length; i++)
-              {
-                if (self.touchId == event.changedTouches[i].identifier)
-                {
-                  touchmoveId = i;
-                  event.clientX = event.changedTouches[i].clientX;
-                  event.clientY = event.changedTouches[i].clientY;
-                }
-              }
-
-              if (touchmoveId == null) return;
-            }
-
-            const xDiff = event.clientX - self.dragStart.x;
-            const yDiff = event.clientY - self.dragStart.y;
-            const angle = Math.atan2(yDiff, xDiff);
-            const distance = Math.min(maxDistance, Math.hypot(xDiff, yDiff));
-            const xPosition = distance * Math.cos(angle);
-            const yPosition = distance * Math.sin(angle);
-
-            // move stick image to new position
-            stick.style.transform = `translate3d(${xPosition}px, ${yPosition}px, 0px)`;
-
-            // deadzone adjustment
-            const distance2 = (distance < deadzone) ? 0 : maxDistance / (maxDistance - deadzone) * (distance - deadzone);
-            const xPosition2 = distance2 * Math.cos(angle);
-            const yPosition2 = distance2 * Math.sin(angle);
-            const xPercent = parseFloat((xPosition2 / maxDistance).toFixed(4));
-            const yPercent = parseFloat((yPosition2 / maxDistance).toFixed(4));
-            
-            self.value = { x: parseInt(xPosition), y: parseInt(yPosition) };
-
-            let joy_y = joystick1.value.y;
-            let joy_x = joystick1.value.x;
-            let joy_xy = 'M' + joy_x + '|' + joy_y;
-            
-            xhr.open("GET", "/joystick?value="+joy_xy, true)
-            xhr.send();
-            console.log("M" + joy_xy);
-          }
-
-          function handleUp(event) 
-          {
-            if ( !self.active ) return;
-
-            // if this is a touch event, make sure it is the right one
-            if (event.changedTouches && self.touchId != event.changedTouches[0].identifier) return;
-
-            // transição do joystick para o centro
-            stick.style.transition = '.2s';
-            stick.style.transform = `translate3d(0px, 0px, 0px)`;
-
-            // zera tudo
-            self.value = { x: 0, y: 0 };
-
-            for (let i = 0; i < 3; i++) //evitar falhas ao enviar (0,0)
-            {
-              xhr.open("GET", "/joystick?value="+"M00|00", true)
-              xhr.send();
-              console.log("Soltou --> 0");
-            }
-            
-
-            self.touchId = null;
-            self.active = false;
-          }
-
-          stick.addEventListener('mousedown', handleDown);
-          stick.addEventListener('touchstart', handleDown);
-          document.addEventListener('mousemove', handleMove, {passive: false});
-          document.addEventListener('touchmove', handleMove, {passive: false});
-          document.addEventListener('mouseup', handleUp);
-          document.addEventListener('touchend', handleUp);
-        }
-      }
-
-      let joystick1 = new JoystickController("stick1", 100, 6);
-      //let joystick2 = new JoystickController("stick2", 64, 8);
-      function apertou()
-      {
-        xhr.open("GET", "/joystick?value="+"B1", true)
-        xhr.send();
-        console.log("Apertou");
-      }
-      function update()
-      {
-        document.getElementById("status1").innerText = "Joystick 1: " + JSON.stringify(joystick1.value);
-      }
-
-      function loop()
-      {
-        requestAnimationFrame(loop);
-        update();
-      }
-
-      loop();
-
-    </script>
-  </body>
-</html>
-)rawliteral";
-
 void setup() {
-  
-  
   
   Serial.begin(115200);
   Serial.println("");
@@ -401,7 +202,11 @@ void setup() {
     
     // Camimho da pagina raiz / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-      request->send_P(200, "text/html", index_html, decabotWebProcessor);
+      request->send(SPIFFS, "/index.html", String(), false, decabotWebProcessor);
+    });
+    
+    server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/status.html", String(), false, decabotWebProcessor);
     });
 
     //Caminhos para as imagens:
