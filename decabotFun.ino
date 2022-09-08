@@ -60,8 +60,6 @@ Servo servo2;
 AsyncWebServer server(80);
 
 //Cons
-
-//Variables
 const char compile_date[] = __DATE__ " " __TIME__;
 #define rgbRedPin 1
 #define rgbGreenPin 3
@@ -72,8 +70,13 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define servo2Pin 12
 bool batteryAllarm = false;
 
+//Variables
 String recebido = "0";
 const char* PARAM_INPUT = "value";
+//control calibration vars
+int centralXlimits = 15;
+int centralYlimits = 15;
+int maximumXY = 155;
 
 //sounds
 const int decabotMusic[4][3]{{494,2,3},{554,2,4},{440,2,5},{880,1,6}};
@@ -87,13 +90,12 @@ static const uint8_t PROGMEM eyes_bmp[4][8] = {
 };
 
 void setup() {
-  
   Serial.begin(115200);
   Serial.println("");
   Serial.println("");
   delay(1000);
   decabotMessage("Copyright (C) Decano Robotics - www.decabot.com");
-  decabotMessage("Decabot Version: 0.7");
+  decabotMessage("Decabot Version: 0.9.2.000");
   decabotMessage(compile_date);
   decabotMessage("Robot ID " + decabotUniqueID());
   
@@ -273,7 +275,8 @@ void setup() {
 
 }
 
-void loop() {
+void loop() 
+{
 //  decabotFace(0);
 //  delay(3000);
 //  decabotFace(1);
@@ -296,7 +299,6 @@ void maquina_de_estados(String msg)
   switch(chave)
   {
     case 'M':
-      
       index_split = recebido.indexOf('|');
       posX = recebido.substring(1, index_split);
       posY = recebido.substring(index_split+1);
@@ -305,6 +307,7 @@ void maquina_de_estados(String msg)
       
       decabotMove(map(pX,0,64,0,100), map(pY,0,64,0,100));
       break;
+      
     case 'B':
       decabotGunShot(1);
       break;
@@ -490,6 +493,7 @@ void decabotShowBatLevel()
 
 void decabotMotorLeft(int power, bool fwd)
 {
+  if(power>100) power = 100;
   if(fwd)
   {
     motor.changeStatus(MOTOR_CH_A, MOTOR_STATUS_CW);
@@ -510,6 +514,7 @@ void decabotMotorLeft(int power, bool fwd)
 
 void decabotMotorRight(int power, bool fwd)
 {
+  if(power>100) power = 100;
   if(fwd)
   {
     motor.changeStatus(MOTOR_CH_B, MOTOR_STATUS_CW);
@@ -548,6 +553,7 @@ void decabotMoveStop()
 {
   decabotMotorRight(0, 1);
   decabotMotorLeft(0, 1);
+  decabotMessage("[move:stop]");
 }
 
 void decabotMoveForward(int pot)
@@ -556,10 +562,25 @@ void decabotMoveForward(int pot)
   decabotMotorLeft(pot, 1);
 }
 
-void decabotMove(int x, int y)
-{
+void decabotMove(int x, int y){
+  //x indica movimentos para esquerda(-) e direita(+)
+  //y indica movimetnos para frente(-) e para trás(+)
+  //valores entre -99 e 99
   byte velD, velE;
-  
+
+  if((x>-centralXlimits)&&(x<centralXlimits)) //frente
+  {
+    if(y<-centralYlimits)
+    {
+      decabotMoveForward(-y);
+    } else if(y>centralYlimits)
+    {
+      decabotMoveBackward(y);
+    } else {
+      decabotMoveStop();
+    }
+  }
+  /*
   if(y <= 0 && x >= 0)//Frente Direita
   {
     velD = constrain(abs(y)+ x, 0, 100);
@@ -608,25 +629,30 @@ void decabotMove(int x, int y)
     decabotMotorRight(velD, 1);
     decabotMotorLeft(velE, 1);
   }
+  */
   
 }
 
-void decabotMoveBackward(int pot){
+void decabotMoveBackward(int pot)
+{
   decabotMotorRight(pot, 0);
   decabotMotorLeft(pot, 0);
 }
 
-void decabotMoveLeft(int pot){
+void decabotMoveLeft(int pot)
+{
   decabotMotorRight(pot, 0);
   decabotMotorLeft(pot, 1);
 }
 
-void decabotMoveRight(int pot){
+void decabotMoveRight(int pot)
+{
   decabotMotorRight(pot, 1);
   decabotMotorLeft(pot, 0);
 }
 
-String decabotUniqueID(){
+String decabotUniqueID()
+{
   String id = "";
   for (size_t i = 0; i < UniqueIDsize; i++){
     if (UniqueID[i] < 0x10) id = id + "0";
@@ -635,7 +661,8 @@ String decabotUniqueID(){
   return id;
 }
 
-String decabotWebProcessor(const String& var){
+String decabotWebProcessor(const String& var)
+{
   if (var == "recebido"){
     return recebido;
   }
