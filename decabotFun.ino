@@ -491,16 +491,16 @@ void decabotShowBatLevel()
   //decabotMessage(readBatteryLevel().toString());
 }
 
-void decabotMotorLeft(int power, bool fwd)
+void decabotMotorRight(int power, bool fwd)
 {
   if(power>100) power = 100;
   if(fwd)
   {
-    motor.changeStatus(MOTOR_CH_A, MOTOR_STATUS_CW);
+    motor.changeStatus(MOTOR_CH_A, MOTOR_STATUS_CCW);
   } 
   else 
   {
-    motor.changeStatus(MOTOR_CH_A, MOTOR_STATUS_CCW);
+    motor.changeStatus(MOTOR_CH_A, MOTOR_STATUS_CW);
   }
   if(power<=15)
   {
@@ -512,16 +512,16 @@ void decabotMotorLeft(int power, bool fwd)
   }
 }
 
-void decabotMotorRight(int power, bool fwd)
+void decabotMotorLeft(int power, bool fwd)
 {
   if(power>100) power = 100;
   if(fwd)
   {
-    motor.changeStatus(MOTOR_CH_B, MOTOR_STATUS_CW);
+    motor.changeStatus(MOTOR_CH_B, MOTOR_STATUS_CCW);
   } 
   else 
   {
-    motor.changeStatus(MOTOR_CH_B, MOTOR_STATUS_CCW);
+    motor.changeStatus(MOTOR_CH_B, MOTOR_STATUS_CW);
   }
   if(power<=15)
   {
@@ -568,6 +568,7 @@ void decabotMove(int x, int y){
   //valores entre -99 e 99
   byte velD, velE;
 
+  /*
   if((x>-centralXlimits)&&(x<centralXlimits)) //frente
   {
     if(y<-centralYlimits)
@@ -580,7 +581,7 @@ void decabotMove(int x, int y){
       decabotMoveStop();
     }
   }
-  /*
+  */
   if(y <= 0 && x >= 0)//Frente Direita
   {
     velD = constrain(abs(y)+ x, 0, 100);
@@ -629,7 +630,6 @@ void decabotMove(int x, int y){
     decabotMotorRight(velD, 1);
     decabotMotorLeft(velE, 1);
   }
-  */
   
 }
 
