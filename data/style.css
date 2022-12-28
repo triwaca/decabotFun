@@ -1,0 +1,15 @@
+.centrar{
+    text-align: center;
+    margin: auto    ;
+}
+.botão{
+    image-orientation: auto;
+}
+
+input[type="range"] {
+  appearance: slider-vertical;
+}
+
+.slidecontainer {
+  width: 100%; /* Width of the outside container */
+}
